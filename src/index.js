@@ -43,4 +43,70 @@ app.post(`/tasks`, (req, res) => {
 		});
 });
 
+app.get(`/users`, (req, res) => {
+	UserModel.find({})
+		.then(users => {
+			res.status(200).send(users);
+		})
+		.catch(error => {
+			console.log(`failed to fetch documents: ${error}`);
+			res.status(500).send();
+		});
+});
+
+app.get(`/users/:id`, (req, res) => {
+	const _id = req.params.id;
+
+	//mongoose automatically converts string id --> ObjectID
+	UserModel.findById(_id) //if no user with such id the success handler also will be triggered
+		.then(user => {				//if no user with such id --> user === null
+			if(!user){
+				return res.status(404).send();
+			}
+			res.status(200).send(user);
+		})
+		.catch(error => { 
+			if(error.name === `CastError`){ //.findById throws an error if an id is poorly formated
+				return res.status(400).send({
+					status: `failed to fetch document`,
+					error: `invalid id provided`
+				});
+			}			
+			res.status(500).send();
+		});
+});
+
+app.get(`/tasks`, (req, res) => {
+	TaskModel.find({})
+		.then(tasks => {
+			res.status(200).send(tasks);
+		})
+		.catch(error => {
+			console.log(`failed to fetch documents: ${error}`);
+			res.status(500).send();
+		})
+});
+
+app.get(`/tasks/:id`, (req, res) => {
+	const _id = req.params.id;
+
+	TaskModel.findById(_id)
+		.then(task => {
+			if(!task){ //task === null --> no such task
+				return res.status(404).send();
+			}
+			res.status(200).send(task);
+		})
+		.catch(error => {
+			if(error.name === `CastError`){ //.findById throws an error if an id is poorly formated
+				return res.status(400).send({
+					status: `failed to fetch document`,
+					error: `invalid id provided`
+				});
+			}			
+			res.status(500).send();
+		});
+
+});
+
 app.listen(port, () => console.log(`server is listening on port ${port}`));

@@ -3,7 +3,8 @@ const mongoose = require(`mongoose`);
 const configConnection = {
 	useNewUrlParser: true, 
 	useUnifiedTopology: true,
-	useCreateIndex: true
+	useCreateIndex: true,
+	useFindAndModify: false
 };
 
 //task-manager-api --> name of the database to connect 
