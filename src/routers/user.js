@@ -62,11 +62,20 @@ router.patch(`/users/:id`, async (req, res) => { //properties is req.body that d
 			new: true, //return the updated document rather then the original 
 			runValidators: true //run the schema validators against the updating object
 		};
-		const updatedUser = await UserModel.findByIdAndUpdate(req.params.id, req.body, queryOptions);
-		if(!updatedUser) { //if no user with a correctly formated id --> updatedUser === null
+
+		//this block is designed to trigger `document middleware` --> it uses .save()
+		const userToUpdate = await UserModel.findById(req.params.id);
+
+		if(!userToUpdate) { //if no user with a correctly formated id --> userToUpdate === null
 			return res.status(404).send();
 		}
-		res.status(200).send(updatedUser);
+
+		updates.forEach(fieldName => userToUpdate[fieldName] = req.body[fieldName]);
+		await userToUpdate.save();
+		//the old code:
+		//const updatedUser = await UserModel.findByIdAndUpdate(req.params.id, req.body, queryOptions);
+		
+		res.status(200).send(userToUpdate);
 
 	} catch(error) {
 		if(error.name === `CastError`) { //`findById` throws an error if an id is poorly formated

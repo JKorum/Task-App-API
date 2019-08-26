@@ -62,11 +62,18 @@ router.patch(`/tasks/:id`, async (req, res) => {
 			new: true, //return the updated document rather then the original 
 			runValidators: true //run the schema validators against the updating object
 		};
-		const updatedTask = await TaskModel.findByIdAndUpdate(req.params.id, req.body, queryOptions);
-		if(!updatedTask) { //if no task with a correctly formated id --> updatedTask === null
+
+		const taskToUpdate = await TaskModel.findById(req.params.id);
+		if(!taskToUpdate) { //if no task with a correctly formated id --> taskToUpdate === null
 			return res.status(404).send();
 		}
-		res.status(200).send(updatedTask);
+		updates.forEach(fieldName => taskToUpdate[fieldName] = req.body[fieldName]);
+		await taskToUpdate.save();
+
+		//old line:
+		//const updatedTask = await TaskModel.findByIdAndUpdate(req.params.id, req.body, queryOptions);
+		
+		res.status(200).send(taskToUpdate);
 
 	} catch(error) {
 		if(error.name === `CastError`) { //`findById` throws an error if an id is poorly formated
