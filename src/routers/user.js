@@ -5,14 +5,19 @@ const UserModel = require(`../models/user.js`)
 const router = new express.Router();
 
 //settins up router routes
+//public route: sign up 
 router.post(`/users`, async (req, res) => {	
 	const testUser = new UserModel(req.body);	
+
 	try {
 		const userDocument = await testUser.save();
-		console.log(`new document inserted: ${userDocument}`);
-		res.status(201).send(userDocument);
+
+		const token = await userDocument.generateAuthToken();
+
+		res.status(201).send({ userDocument, token });
+
 	} catch(error) {		
-		console.log(error);
+		
 		res.status(400).send({
 			status: `failed to insert document`,
 			error: error.message
@@ -20,13 +25,18 @@ router.post(`/users`, async (req, res) => {
 	}	
 });
 
+//public route: log in
 router.post(`/users/login`, async (req, res) => {
 	try {
 		//.findByCredentials() --> custom function defined in `../models/user.js` 
 		const user = await UserModel.findByCredentials(req.body.email, req.body.password);
-		res.status(200).send(user);
+
+		const token = await user.generateAuthToken(); //instance method
+
+		res.status(200).send({ user, token });
 
 	} catch(error) {
+		console.log(error)
 		res.status(400).send();
 	}
 
