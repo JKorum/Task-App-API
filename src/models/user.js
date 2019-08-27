@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema({
 	},
 	email: {
 		type: String,
+		unique: true, // creates an index in mongodb db (recreate db --> to get it to work)
 		required: true,
 		trim: true,
 		lowercase: true,
@@ -39,7 +40,27 @@ const userSchema = new mongoose.Schema({
 	}			
 });
 
-//registering `document middleware`
+//the method to call on UserModel
+userSchema.statics.findByCredentials = async (email, password) => {
+	const user = await UserModel.findOne({ email }); 
+
+
+	if(!user) {
+		throw new Error(`unable to login`);
+	}
+
+	const isMatch = await bcrypt.compare(password, user.password);
+
+	if(!isMatch) {
+		throw new Error(`unable to login`);
+	}
+
+	return user; //return a promise resolved with user value
+
+};
+
+
+//registering `document middleware` --> hash plain pasword before saving
 userSchema.pre(`save`, async function (next) {
 	const userDocument = this; //to obtain more clear syntax
 
