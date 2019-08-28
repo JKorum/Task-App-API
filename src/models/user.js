@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema({
 		trim: true,
 		minlength: 7,
 		validate(value){
-			if(/password/i.test(value)) throw new Error(`substring 'password' shouldn't be used`)
+			if(/password/i.test(value)) throw new Error(`word 'password' shouldn't be used`)
 		}
 	},
 	age: {
