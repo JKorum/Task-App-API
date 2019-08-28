@@ -1,56 +1,65 @@
-const express = require(`express`);
-const UserModel = require(`../models/user.js`)
+const express = require(`express`)
+const UserModel = require(`../models/user`)
+const auth = require(`../middleware/auth`)
 
-//instantiate a new router
-const router = new express.Router();
+const router = new express.Router()
 
-//settins up router routes
-//public route: sign up 
+//public route --> sign up 
 router.post(`/users`, async (req, res) => {	
-	const testUser = new UserModel(req.body);	
+	const testUser = new UserModel(req.body)
 
 	try {
-		const userDocument = await testUser.save();
+		const userDocument = await testUser.save()
+		const token = await userDocument.generateAuthToken()
+		res.status(201).send({ userDocument, token })
 
-		const token = await userDocument.generateAuthToken();
-
-		res.status(201).send({ userDocument, token });
-
-	} catch(error) {		
-		
-		res.status(400).send({
-			status: `failed to insert document`,
-			error: error.message
-		});
+	} catch(e) {				
+		res.status(400).send({ error: e.message })
 	}	
-});
+})
 
-//public route: log in
+//public route --> log in
 router.post(`/users/login`, async (req, res) => {
 	try {
-		//.findByCredentials() --> custom function defined in `../models/user.js` 
-		const user = await UserModel.findByCredentials(req.body.email, req.body.password);
+		const { email, password } = req.body		
+		const user = await UserModel.findByCredentials(email, password)
+		const token = await user.generateAuthToken()
+		res.status(200).send({ user, token })
 
-		const token = await user.generateAuthToken(); //instance method
-
-		res.status(200).send({ user, token });
-
-	} catch(error) {
-		console.log(error)
-		res.status(400).send();
+	} catch(e) {		
+		res.status(400).send({ error: e.message })
 	}
+})
 
-});
-
-router.get(`/users`, async (req, res) => {	
+//auth route --> log out (current session)
+router.post(`/users/logout`, auth, async (req, res) => {
 	try {
-		const users = await UserModel.find({});
-		res.status(200).send(users);
-	} catch(error) {
-		console.log(error);
-		res.status(500).send();
+		req.user.tokens = req.user.tokens.filter(tokenDocument => tokenDocument.token !== req.token)
+		await req.user.save()
+		res.status(200).send()
+
+	} catch (e) {
+		res.status(500).send()
 	}
-});
+})
+
+//auth route --> log out (all sessions)
+router.post(`/users/logoutall`, auth, async (req, res) => {
+	try {
+		req.user.tokens = []
+		await req.user.save()
+		res.status(200).send()
+
+	} catch (e) {
+		res.status(500).send()
+	}
+})
+
+//auth route --> send profile 
+router.get(`/users/me`, auth, async (req, res) => {	
+	res.status(200).send(req.user)	
+})
+
 
 router.get(`/users/:id`, async (req, res) => {
 	const _id = req.params.id;

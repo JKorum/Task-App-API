@@ -90,7 +90,6 @@ userSchema.pre(`save`, async function (next) {
 	next();
 });
 
-
 //model used to manipulate collection, instantiate documents 
 const UserModel = mongoose.model(`User`, userSchema);
 
