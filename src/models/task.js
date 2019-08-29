@@ -1,6 +1,5 @@
-const mongoose = require(`mongoose`);
+const mongoose = require(`mongoose`)
 
-//schema used to shape documents
 const taskSchema = new mongoose.Schema({
 	description: {
 		type: String,
@@ -10,10 +9,14 @@ const taskSchema = new mongoose.Schema({
 	status: {
 		type: Boolean,
 		default: false
+	},
+	owner: {
+		type: mongoose.Schema.Types.ObjectId,
+		required: true,
+		ref: `User`
 	}
-});	
+})
 
-//model used to manipulate collection, instantiate documents
-const TaskModel = mongoose.model(`Task`, taskSchema);
+const TaskModel = mongoose.model(`Task`, taskSchema)
 
-module.exports = TaskModel;
+module.exports = TaskModel

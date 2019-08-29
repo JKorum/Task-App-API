@@ -1,102 +1,103 @@
-const express = require(`express`);
-const TaskModel = require(`../models/task.js`);
+const express = require(`express`)
+const TaskModel = require(`../models/task`)
+const auth = require(`../middleware/auth`)
 
-//instatiating a new router
-const router = new express.Router();
+const router = new express.Router()
 
-//setting up router routes
-router.post(`/tasks`, async (req, res) => {
-	const testTask = new TaskModel(req.body);
+//auth route --> create a task
+router.post(`/tasks`, auth, async (req, res) => {
+	const newTask = new TaskModel({
+		...req.body,
+		owner: req.user._id
+	})
+
 	try {
-		const taskDocument = await testTask.save();
-		console.log(`new document inserted: ${taskDocument}`);
-		res.status(201).send(taskDocument);
-	} catch(error) {
-		console.log(error);
-		res.status(400).send({
-			status: `failed to insert document`,
-			error: error.message 
-		});
+		await newTask.save()		
+		res.status(201).send(newTask)
+
+	} catch(e) {		
+		res.status(400).send({ error: e.message })
 	}	
-});
+})
 
-router.get(`/tasks`, async (req, res) => {
-	try {
-		const tasks = await TaskModel.find({});
-		res.status(200).send(tasks);
-	} catch(error) {
-		console.log(error);
-		res.status(500).send();
+//auth route --> read all tasks
+router.get(`/tasks`, auth, async (req, res) => {
+	try {		
+		await req.user.populate(`tasks`).execPopulate()
+		if (req.user.tasks.length === 0) {
+			return res.status(200).send({ message: `no tasks created yet` })
+		}
+		res.status(200).send(req.user.tasks)
+
+	} catch(e) {		
+			res.status(500).send()
 	}
-});
+})
 
-router.get(`/tasks/:id`, async (req, res) => {
+//auth route --> read a single task
+router.get(`/tasks/:id`, auth, async (req, res) => {
 	const _id = req.params.id;
+
 	try {
-		const task = await TaskModel.findById(_id);
-		if(!task) { //task === null --> no such task
-			return res.status(404).send();
+		const task = await TaskModel.findOne({ _id, owner: req.user._id })
+		if (!task) {
+			res.status(404).send()
 		}
-		res.status(200).send(task);
-	} catch(error) {
-		if(error.name === `CastError`) { //`findById` throws an error if an id is poorly formated
-			return res.status(400).send({
-				status: `failed to fetch document`,
-				error: `invalid id provided`
-			});
-		}
-		res.status(500).send();
+		res.status(200).send(task)
+
+	} catch(e) {
+			if(e.name === `CastError`) { //req.params.id is poorly formated
+				return res.status(400).send({ error: `invalid id` })
+			}
+			res.status(500).send()
 	}	
-});
+})
 
-router.patch(`/tasks/:id`, async (req, res) => {
-	const updates = Object.keys(req.body); //consider to refactor to a function --> ./utilities/smth.js OR middleware?
-	const allowedToUpdate = [`description`, `status`];
-	const isValidOperation = updates.every(update => allowedToUpdate.includes(update));
+//auth route --> update a single task
+router.patch(`/tasks/:id`, auth, async (req, res) => {	
+	const updates = Object.keys(req.body)	
+	if (updates.length === 0) {
+		return res.status(400).send({ error: `no updates provided` })
+	}
+
+	const allowedToUpdate = [`description`, `status`]
+	const isValidOperation = updates.every(update => allowedToUpdate.includes(update))
 	if(!isValidOperation) {
-		return res.status(400).send({ error: `invalid field names` });
+		return res.status(400).send({ error: `invalid update names` })
 	}
 
-	try { //mongoose automatically converts string id --> ObjectID
-		const queryOptions = {
-			new: true, //return the updated document rather then the original 
-			runValidators: true //run the schema validators against the updating object
-		};
-
-		const taskToUpdate = await TaskModel.findById(req.params.id);
-		if(!taskToUpdate) { //if no task with a correctly formated id --> taskToUpdate === null
-			return res.status(404).send();
+	try { 
+		const taskToUpdate = await TaskModel.findOne({ _id: req.params.id, owner: req.user._id })		
+		if(!taskToUpdate) {
+			return res.status(404).send()
 		}
-		updates.forEach(fieldName => taskToUpdate[fieldName] = req.body[fieldName]);
-		await taskToUpdate.save();
+		updates.forEach(update => taskToUpdate[update] = req.body[update])
+		await taskToUpdate.save()		
+		res.status(200).send(taskToUpdate)
 
-		//old line:
-		//const updatedTask = await TaskModel.findByIdAndUpdate(req.params.id, req.body, queryOptions);
-		
-		res.status(200).send(taskToUpdate);
-
-	} catch(error) {
-		if(error.name === `CastError`) { //`findById` throws an error if an id is poorly formated
-			return res.status(400).send({ error: `invalid value for id field` });
-		}
-		res.status(400).send(error); //for validation errors --> refactor sending data
+	} catch(e) {
+			if(e.name === `CastError`) { //req.params.id is poorly formated
+					return res.status(400).send({ error: `invalid id` })
+			}			
+			res.status(400).send(e.message) //validation errors
 	}
-});
+})
 
-router.delete(`/tasks/:id`, async (req, res) => { 
-	try {
-		const deletedTask = await TaskModel.findByIdAndDelete(req.params.id);
-		if(!deletedTask) { //if no task with a correctly formated id --> deletedTask === null
-			return res.status(404).send();
+//auth route --> delete a single task
+router.delete(`/tasks/:id`, auth, async (req, res) => { 
+	try {		
+		const deletedTask = await TaskModel.findOneAndDelete({ _id: req.params.id, owner: req.user._id })
+		if (!deletedTask) {
+			return res.status(404).send()
 		}
-		res.status(200).send(deletedTask);
+		res.status(200).send(deletedTask)
 
-	} catch(error) {
-		if(error.name === `CastError`) { //`findById` throws an error if an id is poorly formated
-			return res.status(400).send({ error: `invalid value for id field` }); // set up a middleware or a utility
+	} catch(e) {
+		if(e.name === `CastError`) { //req.params.id is poorly formated
+			return res.status(400).send({ error: `invalid id` }) 
 		}
 		res.status(500).send();
 	}
-});
+})
 
 module.exports = router;

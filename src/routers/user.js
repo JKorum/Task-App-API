@@ -1,5 +1,6 @@
 const express = require(`express`)
 const UserModel = require(`../models/user`)
+const TaskModel = require(`../models/task`)
 const auth = require(`../middleware/auth`)
 
 const router = new express.Router()
@@ -85,8 +86,11 @@ router.patch(`/users/me`, auth, async (req, res) => {
 
 //auth route --> delete profile 
 router.delete(`/users/me`, auth, async (req, res) => {
-	try {
-		await UserModel.deleteOne({ _id: req.user._id })
+	try {		
+		const result = await UserModel.deleteOne({ _id: req.user._id })
+		if (result.deletedCount === 1) { //mimic atomic operation
+			await TaskModel.deleteMany({ owner: req.user._id }) //delete all user's tasks after removing the user		
+		}
 		res.status(200).send(req.user)
 
 	} catch(e) {		
