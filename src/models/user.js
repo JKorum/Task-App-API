@@ -3,6 +3,12 @@ const { isEmail } = require(`validator`)
 const bcrypt = require(`bcrypt`)
 const jwt = require(`jsonwebtoken`)
 
+/* second argument for Schema constructor
+	 timestamps: mongoose adds createdAt and updatedAt props to schema and manages those properties for you */
+const options = {
+	timestamps: true 
+}
+
 /* mongoose: schema --> model --> document
 	 schema used to shape documents
 	 trim, lowercase --> sanitizers (before validation)
@@ -46,7 +52,7 @@ const userSchema = new mongoose.Schema({
 			required: true
 		}
 	}]			
-})
+}, options)
 
 //virtual properties
 userSchema.virtual(`tasks`, {

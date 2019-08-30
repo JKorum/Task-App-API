@@ -20,10 +20,26 @@ router.post(`/tasks`, auth, async (req, res) => {
 	}	
 })
 
-//auth route --> read all tasks
+/* auth route --> read all tasks
+	 /tasks --> to fetch all tasks
+	 /tasks?status=[true || false] --> to filter tasks
+	 /tasks?limit=[10]&skip=[10] --> to paginate results */
 router.get(`/tasks`, auth, async (req, res) => {
+	const match = {}
+
+	if (req.query.status === `true` || req.query.status === `false`) {
+		match.status = req.query.status === `true`
+	}
+
 	try {		
-		await req.user.populate(`tasks`).execPopulate()
+		await req.user.populate({
+			path: `tasks`, 
+			match,
+			options: {
+				limit: +req.query.limit, //if not provided will be ignored by mongoose
+				skip: +req.query.skip
+			}
+		}).execPopulate()
 		if (req.user.tasks.length === 0) {
 			return res.status(200).send({ message: `no tasks created yet` })
 		}

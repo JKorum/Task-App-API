@@ -1,5 +1,9 @@
 const mongoose = require(`mongoose`)
 
+const options = {
+	timestamps: true 
+}
+
 const taskSchema = new mongoose.Schema({
 	description: {
 		type: String,
@@ -15,7 +19,7 @@ const taskSchema = new mongoose.Schema({
 		required: true,
 		ref: `User`
 	}
-})
+}, options)
 
 const TaskModel = mongoose.model(`Task`, taskSchema)
 
