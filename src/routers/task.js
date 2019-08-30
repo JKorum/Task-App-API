@@ -22,13 +22,20 @@ router.post(`/tasks`, auth, async (req, res) => {
 
 /* auth route --> read all tasks
 	 /tasks --> to fetch all tasks
-	 /tasks?status=[true || false] --> to filter tasks
-	 /tasks?limit=[10]&skip=[10] --> to paginate results */
+	 /tasks?status=true --> to filter tasks
+	 /tasks?limit=10&skip=10 --> to paginate results
+	 /task?sortby=createdAt:[asc || desc] --> to sort in ascending or descending order */
 router.get(`/tasks`, auth, async (req, res) => {
 	const match = {}
+	const sort = {}
 
 	if (req.query.status === `true` || req.query.status === `false`) {
 		match.status = req.query.status === `true`
+	}
+
+	if (/^createdAt:(desc|asc)$/.test(req.query.sortby)) {
+		const parts = req.query.sortby.split(`:`)
+		sort[parts[0]] = parts[1] === `desc` ? -1 : 1 //-1 --> descending (from new to old), 1 --> ascending (from old to new) 		
 	}
 
 	try {		
@@ -36,8 +43,9 @@ router.get(`/tasks`, auth, async (req, res) => {
 			path: `tasks`, 
 			match,
 			options: {
-				limit: +req.query.limit, //if not provided will be ignored by mongoose
-				skip: +req.query.skip
+				limit: +req.query.limit, //limit, skip --> if not provided will be ignored by mongoose
+				skip: +req.query.skip,
+				sort 
 			}
 		}).execPopulate()
 		if (req.user.tasks.length === 0) {
