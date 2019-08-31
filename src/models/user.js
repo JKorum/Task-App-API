@@ -46,6 +46,9 @@ const userSchema = new mongoose.Schema({
 			if(value < 0) throw new Error(`negative number provided`)
 		}
 	},
+	avatar: {
+		type: Buffer
+	},
 	tokens: [{ //mongoose generated [] by default
 		token: {  
 			type: String,
@@ -89,6 +92,7 @@ userSchema.methods.toJSON = function () { //will be called by JSON.stringify()
 	const userRawObject = user.toObject() //to clone user document --> JS obj (contains only props defined in userSchema)	
 	delete userRawObject.password
 	delete userRawObject.tokens
+	delete userRawObject.avatar
 
 	return userRawObject //this obj will be serialized by JSON.stringify()
 }

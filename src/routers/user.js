@@ -1,9 +1,24 @@
 const express = require(`express`)
+const multer = require(`multer`)
+const sharp = require(`sharp`)
 const UserModel = require(`../models/user`)
 const TaskModel = require(`../models/task`)
 const auth = require(`../middleware/auth`)
 
 const router = new express.Router()
+
+//multer configuration
+const upload = multer({	
+	limits: {
+		fileSize: 1000000 //in bytes
+	},
+	fileFilter(req, file, cb) {		
+		if (/\.(jpg|jpeg|png)$/.test(file.originalname) && (file.mimetype === `image/jpeg` || file.mimetype === `image/png`)) {
+			return cb(null, true)
+		}
+		cb(new Error(`expect .jpg, .jpeg, .png files`))
+	}
+})
 
 //public route --> sign up 
 router.post(`/users`, async (req, res) => {	
@@ -96,6 +111,51 @@ router.delete(`/users/me`, auth, async (req, res) => {
 	} catch(e) {		
 			res.status(500).send()
 	}		
+})
+
+//auth route --> upload/update profile image 
+router.post(`/users/me/avatar`, auth, upload.single(`avatar`), async (req, res) => {	
+	try {
+		const buffer = await sharp(req.file.buffer).resize({ width: 250, height: 250 }).png().toBuffer()
+		req.user.avatar = buffer
+		await req.user.save()
+		res.status(200).send()
+
+	} catch(e) {
+			res.status(500).send({ error: e.message })
+	}	
+}, (err, req, res, next) => {
+	res.status(400).send({ error: err.message })
+})
+
+//auth route --> delete profile image
+router.delete(`/users/me/avatar`, auth, async (req, res) => {
+	if(!req.user.avatar) {
+		return res.status(400).send({ error: `no avatar uploaded` })
+	}
+
+	try {
+		req.user.avatar = undefined
+		await req.user.save()
+		console.log(req.user.avatar)
+		res.status(200).send()
+	} catch(e) {
+			req.status(500).send({ error: e.message })
+	}
+})
+
+//public route --> render profile image in a browser
+router.get(`/users/:id/avatar`, async (req, res) => {	
+	try {
+		const user = await UserModel.findById(req.params.id)	
+		if(!user || !user.avatar) throw new Error()
+
+		res.set(`Content-Type`, `image/png`) 		
+		res.status(200).send(user.avatar)
+
+	} catch(e) {
+			res.status(404).send()
+	}
 })
 
 module.exports = router
