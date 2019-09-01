@@ -4,6 +4,7 @@ const sharp = require(`sharp`)
 const UserModel = require(`../models/user`)
 const TaskModel = require(`../models/task`)
 const auth = require(`../middleware/auth`)
+const { sendWelcomeEmail, farewellEmail } = require(`../emails/account`)
 
 const router = new express.Router()
 
@@ -27,6 +28,9 @@ router.post(`/users`, async (req, res) => {
 	try {
 		const userDocument = await testUser.save()
 		const token = await userDocument.generateAuthToken()
+		
+		sendWelcomeEmail(userDocument.email, userDocument.name)
+
 		res.status(201).send({ userDocument, token })
 
 	} catch(e) {				
@@ -104,9 +108,12 @@ router.delete(`/users/me`, auth, async (req, res) => {
 	try {		
 		const result = await UserModel.deleteOne({ _id: req.user._id })
 		if (result.deletedCount === 1) { //mimic atomic operation
-			await TaskModel.deleteMany({ owner: req.user._id }) //delete all user's tasks after removing the user		
-		}
-		res.status(200).send(req.user)
+			await TaskModel.deleteMany({ owner: req.user._id }) //delete user's tasks after removing the user	
+			
+			farewellEmail(req.user.email, req.user.name)
+
+			res.status(200).send(req.user)
+		}		
 
 	} catch(e) {		
 			res.status(500).send()

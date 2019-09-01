@@ -80,7 +80,7 @@ userSchema.statics.findByCredentials = async (email, password) => {
 userSchema.methods.generateAuthToken = async function () {
 	const userDocument = this
 
-	const token = await jwt.sign({ _id: userDocument._id.toString() }, `token signature`)
+	const token = await jwt.sign({ _id: userDocument._id.toString() }, process.env.TOKEN_SIGNATURE)
 	userDocument.tokens = userDocument.tokens.concat({ token }) //mongoose throws error if used `push`  
 	await userDocument.save()
 	return token

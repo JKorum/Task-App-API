@@ -8,7 +8,7 @@ const configConnection = {
 };
 
 //task-manager-api --> name of the database to connect 
-mongoose.connect(`mongodb://127.0.0.1:27017/task-manager-api`, configConnection);
+mongoose.connect(process.env.MONGODB_URL, configConnection);
 
 const db = mongoose.connection;
 
