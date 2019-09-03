@@ -143,8 +143,7 @@ router.delete(`/users/me/avatar`, auth, async (req, res) => {
 
 	try {
 		req.user.avatar = undefined
-		await req.user.save()
-		console.log(req.user.avatar)
+		await req.user.save()		
 		res.status(200).send()
 	} catch(e) {
 			req.status(500).send({ error: e.message })
